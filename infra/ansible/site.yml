@@ -1,0 +1,22 @@
+---
+- name: TP - deploy app locally (starter)
+  hosts: local
+  gather_facts: false
+
+  vars:
+    app_image: "tp-app:latest"
+    http_port: 8080
+    app_port: 5000
+
+  tasks:
+    - name: TODO - Ensure Docker is available (or document requirement)
+      ansible.builtin.debug:
+        msg: "TODO: verify docker is installed / running"
+
+    - name: TODO - Deploy app + nginx (reverse proxy)
+      ansible.builtin.debug:
+        msg: "TODO: run containers + network in idempotent way"
+
+    - name: TODO - Post-deploy verification
+      ansible.builtin.debug:
+        msg: "TODO: verify http://localhost:8080/health"

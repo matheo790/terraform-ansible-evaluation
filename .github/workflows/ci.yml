@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  build-and-smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          # TODO: students must create app/Dockerfile so this works
+          docker build -t tp-app:ci ./app
+
+      - name: Run container + smoke test
+        run: |
+          docker run -d --rm -p 8080:5000 --name tp_app tp-app:ci
+          sleep 2
+          curl -f http://localhost:8080/health
