@@ -3,8 +3,6 @@ name: CI
 on:
   push:
     branches: ["main"]
-  pull_request:
-    branches: ["main"]
 
 jobs:
   build-and-test:
@@ -17,7 +15,7 @@ jobs:
       - name: Terraform 
         uses: hashicorp/setup-terraform@v3
         with:
-          [cite_start]terraform_version: "1.5.0"
+          terraform_version: "1.5.0"
 
       - name: Installation d'Ansible
         run: |
