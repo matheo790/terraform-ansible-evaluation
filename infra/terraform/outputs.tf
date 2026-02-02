@@ -11,4 +11,5 @@ output "evaluation_container" {
 
 output "nginx_container" {
   value = "evaluation_nginx"
+
 }
