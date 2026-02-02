@@ -1,22 +1,84 @@
 ---
-- name: TP - deploy app locally (starter)
-  hosts: local
+- name: TP - déployer l'application localement (Terraform + Ansible Docker)
+  hosts: localhost
+  connection: local
   gather_facts: false
+  become: false
 
   vars:
-    app_image: "tp-app:latest"
-    http_port: 8080
+    app_dir: "{{ playbook_dir }}/../../app"
+    terraform_dir: "{{ playbook_dir }}/../terraform"
+    
+    app_env: "prod"
     app_port: 5000
+    http_port: 8080
 
   tasks:
-    - name: TODO - Ensure Docker is available (or document requirement)
-      ansible.builtin.debug:
-        msg: "TODO: verify docker is installed / running"
+    - name: S'assurer que Docker et Terraform sont installés
+      ansible.builtin.command: "{{ item }}"
+      loop:
+        - "docker info"
+        - "terraform -version"
+      register: check_tools
+      changed_when: false
 
-    - name: TODO - Deploy app + nginx (reverse proxy)
-      ansible.builtin.debug:
-        msg: "TODO: run containers + network in idempotent way"
+    - name: Construire l'image Docker pour l'application
+      community.docker.docker_image:
+        build:
+          path: "{{ app_dir }}"
+        name: tp-app
+        tag: latest
+        source: build
+      register: build_result
+    - name: Initialiser Terraform
+      ansible.builtin.command: terraform init -input=false
+      args:
+        chdir: "{{ terraform_dir }}"
+      register: tf_init
+      changed_when: "'Terraform has been successfully initialized' in tf_init.stdout"
 
-    - name: TODO - Post-deploy verification
+    - name: Appliquer Terraform (Infrastructure uniquement)
+      ansible.builtin.command: terraform apply -auto-approve -input=false
+      args:
+        chdir: "{{ terraform_dir }}"
+      register: tf_apply
+      changed_when: "'Apply complete!' in tf_apply.stdout"
+
+    - name: Déployer le conteneur de l'application (via Ansible)
+      community.docker.docker_container:
+        name: evaluation_container
+        image: tp-app:latest
+        networks:
+          - name: evaluation_network
+        env:
+          APP_ENV: "{{ app_env }}"
+          PORT: "{{ app_port | string }}"
+        state: started
+        restart_policy: always
+
+    - name: Déployer le conteneur Nginx (via Ansible)
+      community.docker.docker_container:
+        name: evaluation_nginx
+        image: nginx:latest
+        networks:
+          - name: evaluation_network
+        ports:
+          - "{{ http_port }}:80"
+        volumes:
+          - "{{ terraform_dir }}/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
+        state: started
+        restart_policy: always
+
+    - name: Vérification post-déploiement (healthcheck)
+      ansible.builtin.uri:
+        url: "http://localhost:{{ http_port }}/health"
+        method: GET
+        status_code: 200
+      register: health
+      retries: 10
+      delay: 3
+      until: health.status == 200
+
+    - name: Terminé
       ansible.builtin.debug:
-        msg: "TODO: verify http://localhost:8080/health"
+        msg: "Succès ! L'application est disponible sur http://localhost:{{ http_port }}/health"

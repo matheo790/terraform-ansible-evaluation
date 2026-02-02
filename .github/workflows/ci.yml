@@ -4,20 +4,36 @@ on:
   push:
     branches: ["main"]
   pull_request:
+    branches: ["main"]
 
 jobs:
-  build-and-smoke-test:
+  build-and-test:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: check du code
+        uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: |
-          # TODO: students must create app/Dockerfile so this works
-          docker build -t tp-app:ci ./app
+      - name: Terraform 
+        uses: hashicorp/setup-terraform@v3
+        with:
+          [cite_start]terraform_version: "1.5.0"
 
-      - name: Run container + smoke test
+      - name: Installation d'Ansible
         run: |
-          docker run -d --rm -p 8080:5000 --name tp_app tp-app:ci
-          sleep 2
-          curl -f http://localhost:8080/health
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Installation de Docker collection et d'ansible
+        run: ansible-galaxy collection install community.docker
+
+      - name: Build et Deploy via Ansible
+        run: |
+          cd infra/ansible
+          ansible-playbook site.yml
+        env:
+          APP_ENV: "prod"
+          PORT: 5000
+
+      - name: Vérification du Healthcheck
+        run: curl --fail http://localhost:8080/health #
