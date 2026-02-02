@@ -5,33 +5,55 @@ on:
     branches: ["main"]
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: check du code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Terraform 
+      - name: Build test
+        run: docker build -t tp-app:latest ./app
+
+  terraform:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.5.0"
 
-      - name: Installation d'Ansible
+      - name: Terraform Init & Plan
+        run: |
+          cd infra/terraform
+          terraform init
+          terraform plan
+
+  deploy:
+    needs: terraform
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Ansible & Docker Collection
         run: |
           sudo apt-get update
           sudo apt-get install -y ansible
-
-      - name: Installation de Docker collection et d'ansible
-        run: ansible-galaxy collection install community.docker
+          ansible-galaxy collection install community.docker
 
       - name: Build et Deploy via Ansible
         run: |
           cd infra/ansible
+          # Correctif pour l'erreur de callback plugin
+          export ANSIBLE_STDOUT_CALLBACK=default
           ansible-playbook site.yml
         env:
           APP_ENV: "prod"
           PORT: 5000
 
       - name: Vérification du Healthcheck
-        run: curl --fail http://localhost:8080/health #
+        run: curl --fail http://localhost:8080/health
