@@ -53,8 +53,7 @@ mais de **démontrer votre capacité à structurer, automatiser et expliquer**.
 # README du projet (référence officielle)
 
 Les consignes techniques ci-dessous sont **exactement celles du dépôt Git fourni**.  
-Elles font partie intégrante du sujet d’évaluation.
-***
+Elles font partie intégrante du sujet d’évaluation.***
 ## Consignes techniques (README du projet)
 
 ## TP Évaluation — CI/CD + Docker + IaC (Terraform) + Automatisation (Ansible)
